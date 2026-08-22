@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Positive;
         @NotBlank(message = "Payer name cannot be empty")
         private String payerName;
 
-        @NotBlank(message = "Invalid UPI ID")
+        @NotBlank(message = "Invalid UPI ID")git switch -c feature/payment-service-setup
         @Pattern(regexp = "^[a-zA-Z0-9.\\-_]+@[a-zA-Z]+$", message = "Invalid UPI ID")
         private String upiId;
 
