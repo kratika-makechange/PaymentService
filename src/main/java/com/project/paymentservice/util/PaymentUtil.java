@@ -2,6 +2,8 @@ package com.project.paymentservice.util;
 
 import com.project.paymentservice.dto.PaymentRequestDto;
 import com.project.paymentservice.exception.InvalidPaymentException;
+
+import java.math.BigDecimal;
 import java.util.UUID;
 
     public class PaymentUtil {
@@ -27,7 +29,7 @@ import java.util.UUID;
                 throw new InvalidPaymentException("Invalid UPI ID");
             }
 
-            if (request.getAmount() <= 0) {
+            if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
                 throw new InvalidPaymentException("Payment amount must be greater than zero");
             }
         }
