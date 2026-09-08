@@ -27,6 +27,17 @@ import java.util.Map;
             return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
         }
 
+        @ExceptionHandler(PaymentNotFoundException.class)
+        public ResponseEntity<Map<String, String>> handleInvalidPaymentException(PaymentNotFoundException ex){
+
+            Map<String, String> error=new HashMap<>();
+            error.put("error", "payment not found");
+            error.put("message", ex.getMessage());
+
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(error);
+        }
+
         // Handles @Valid annotation failures from the Controller
         @ExceptionHandler(MethodArgumentNotValidException.class)
         public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {

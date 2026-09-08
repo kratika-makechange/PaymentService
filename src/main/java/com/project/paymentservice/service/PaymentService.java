@@ -13,8 +13,10 @@ import com.project.paymentservice.util.PaymentUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 
@@ -27,6 +29,8 @@ import java.util.Optional;
         this.repository = repository;
     }
 
+
+    @Transactional(rollbackFor = InvalidPaymentException.class)
     public PaymentResponseCreatedDto createPayment(PaymentRequestDto request) throws InvalidPaymentException {
             logger.info("Payment Started");
 
@@ -34,12 +38,11 @@ import java.util.Optional;
             String paymentId = PaymentUtil.generatePaymentId();
             Payment payment=new Payment();
             payment.setPayerName(request.getPayerName());
-            payment.setPayerId(paymentId);
+            payment.setPaymentId(paymentId);
             payment.setUpiId(request.getUpiId());
             payment.setAmount(request.getAmount());
             payment.setCreatedAt(LocalDateTime.now());
 
-            try {
                 PaymentUtil.validatePaymentRequest(request);
                 payment.setStatus(PaymentStatus.SUCCESS);
                 logger.info("Payment Successful for ID: {}", paymentId);
@@ -50,26 +53,16 @@ import java.util.Optional;
                         "Payment completed successfully"
                 );
 
-            }catch(Exception e){
-                logger.info("Payment Failed for ID: {} - Reason: {}", paymentId, e.getMessage());
-                payment.setStatus(PaymentStatus.FAILED);
-                repository.save(payment);
 
-                if(e instanceof InvalidPaymentException){
-                    throw (InvalidPaymentException) e;
-                }
-
-                throw new InvalidPaymentException(e.getMessage());
-            }
         }
 
         public PaymentResponseDto getPaymentById(String id)throws PaymentNotFoundException{
 
-            Payment payment=repository.findByPayerId(id).
+            Payment payment=repository.findByPaymentId(id).
                 orElseThrow(()-> new PaymentNotFoundException("Payment not found with id :"+ id));
 
             return new PaymentResponseDto(
-                    payment.getPayerId(),
+                    payment.getPaymentId(),
                     payment.getPayerName(),
                     payment.getUpiId(),
                     payment.getAmount(),
@@ -79,19 +72,23 @@ import java.util.Optional;
 
         }
 
-    public PaymentResponseDto getPaymentByName(String payerName)throws PaymentNotFoundException{
+    public List<PaymentResponseDto> getPaymentByName(String payerName)throws PaymentNotFoundException{
 
-        Payment payment=repository.findByPayerName(payerName).
-                orElseThrow(()-> new PaymentNotFoundException("Payment not found for name :"+ payerName));
+        List<Payment> payments = repository.findByPayerName(payerName);
+        if (payments.isEmpty()) {
+            throw new PaymentNotFoundException("Payment not found for name :" + payerName);
+        }
 
-        return new PaymentResponseDto(
-                payment.getPayerId(),
+
+        return payments.stream()
+                .map(payment -> new PaymentResponseDto(
+                payment.getPaymentId(),
                 payment.getPayerName(),
                 payment.getUpiId(),
                 payment.getAmount(),
                 payment.getStatus(),
                 "Payment retrieved successfully"
-        );
+        )).toList();
 
     }
     }

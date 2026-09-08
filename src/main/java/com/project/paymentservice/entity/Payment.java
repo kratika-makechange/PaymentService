@@ -2,6 +2,8 @@ package com.project.paymentservice.entity;
 
 import com.project.paymentservice.Enum.PaymentStatus;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -13,19 +15,27 @@ public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
-    String payerId;
+
+    @Column(nullable = false, unique = true)
+    String paymentId;
     String payerName;
     String upiId;
+
+    @NotNull(message = "Payment amount is required")
+    @Positive(message = "Payment amount must be greater than zero")
     BigDecimal amount;
+
+    @Enumerated(EnumType.STRING)
     PaymentStatus status;
     LocalDateTime createdAt;
 
-    public String getPayerId() {
-        return payerId;
+
+    public String getPaymentId() {
+        return paymentId;
     }
 
-    public void setPayerId(String payerId) {
-        this.payerId = payerId;
+    public void setPaymentId(String paymentId) {
+        this.paymentId = paymentId;
     }
 
     public String getPayerName() {

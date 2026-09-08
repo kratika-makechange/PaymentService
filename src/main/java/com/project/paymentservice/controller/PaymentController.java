@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -34,13 +35,13 @@ import java.util.Optional;
         @GetMapping("/getPayments/{paymentId}")
         ResponseEntity<PaymentResponseDto> findByPaymentId(@PathVariable String paymentId) throws PaymentNotFoundException {
             PaymentResponseDto response=paymentService.getPaymentById(paymentId);
-            return new ResponseEntity<>(response, HttpStatus.ACCEPTED);
+            return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
     @GetMapping("/getPayments/name/{payerName}")
-    ResponseEntity<PaymentResponseDto> findByPayerName(@PathVariable String payerName) throws PaymentNotFoundException {
-        PaymentResponseDto response=paymentService.getPaymentByName(payerName);
-        return new ResponseEntity<>(response, HttpStatus.ACCEPTED);
+    ResponseEntity<List<PaymentResponseDto>> findByPayerName(@PathVariable String payerName) throws PaymentNotFoundException {
+        List<PaymentResponseDto> response=paymentService.getPaymentByName(payerName);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
     }
 

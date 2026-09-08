@@ -2,6 +2,7 @@ package com.project.paymentservice.util;
 
 import com.project.paymentservice.dto.PaymentRequestDto;
 import com.project.paymentservice.exception.InvalidPaymentException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.UUID;
