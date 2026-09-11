@@ -1,6 +1,7 @@
 package com.project.paymentservice.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 
@@ -15,7 +16,9 @@ public class PaymentRequestDto {
         @Pattern(regexp = "^[a-zA-Z0-9.\\-_]+@[a-zA-Z]+$", message = "Invalid UPI ID")
         private String upiId;
 
-        @Positive(message = "Payment amount must be greater than zero")
+        @NotNull(message = "Payment amount is required")
+        @Positive(message =
+                "Payment amount must be greater than zero")
         private BigDecimal amount;
 
         // Constructors

@@ -40,6 +40,9 @@ public interface PaymentMapper {
     @Mapping(target = "upiId", expression = "java(PaymentUtil.maskUpiId(payment.getUpiId()))")
     PaymentResponseDto toDto(Payment payment, String message);
 
-     PaymentResponseDto toPostResponseDto(Payment payment, String message);
+
+    @Mapping(target = "message", source = "message")
+    @Mapping(target = "upiId", expression = "java(PaymentUtil.maskUpiId(payment.getUpiId()))")
+    PaymentResponseDto toPostResponseDto(Payment payment, String message);
 
 }

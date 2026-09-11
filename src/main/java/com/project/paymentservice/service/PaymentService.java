@@ -93,8 +93,9 @@ import java.util.Optional;
         Payment payment = repository.findByPaymentId(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException("Payment not found with id: " + paymentId));
 
-        if (payment.getStatus().equals(PaymentStatus.PENDING)) {
-            payment.setStatus(PaymentStatus.SUCCESS);
+        if (payment.getStatus().equals(PaymentStatus.PENDING) &&
+                (status.equals(PaymentStatus.SUCCESS) || (status.equals(PaymentStatus.FAILED)))) {
+            payment.setStatus(status);
             repository.save(payment);
 
             // Use mapper here as well

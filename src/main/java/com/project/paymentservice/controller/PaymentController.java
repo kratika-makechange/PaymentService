@@ -4,6 +4,7 @@ import com.project.paymentservice.Enum.PaymentStatus;
 import com.project.paymentservice.dto.PaymentRequestDto;
 import com.project.paymentservice.dto.PaymentResponseCreatedDto;
 import com.project.paymentservice.dto.PaymentResponseDto;
+import com.project.paymentservice.dto.PaymentStatusUpdateDto;
 import com.project.paymentservice.entity.Payment;
 import com.project.paymentservice.exception.InvalidPaymentException;
 import com.project.paymentservice.exception.InvalidPaymentStatusException;
@@ -49,16 +50,16 @@ import java.util.Optional;
         }
 
     @GetMapping("/getPayments/name/{payerName}")
-   public ResponseEntity<List<PaymentResponseDto>> findByPayerName(@PathVariable("payerName") String payerName) throws PaymentNotFoundException {
+   public ResponseEntity<List<PaymentResponseDto>> findByPayerName(@PathVariable String payerName) throws PaymentNotFoundException {
         List<PaymentResponseDto> response=paymentService.getPaymentByName(payerName);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PatchMapping("{paymentId}/status")
-    public ResponseEntity<PaymentResponseDto> updateStatus(@PathVariable String paymentId, PaymentStatus status) throws InvalidPaymentStatusException, InvalidPaymentStatusException, PaymentNotFoundException {
+    public ResponseEntity<PaymentResponseDto> updateStatus(@PathVariable String paymentId, PaymentStatusUpdateDto status) throws InvalidPaymentStatusException, InvalidPaymentStatusException, PaymentNotFoundException {
 
-            PaymentResponseDto response=paymentService.updatePaymentStatus(paymentId, status);
-            return new ResponseEntity<>(response, HttpStatus.ACCEPTED);
+            PaymentResponseDto response=paymentService.updatePaymentStatus(paymentId, status.getStatus());
+            return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/ping")

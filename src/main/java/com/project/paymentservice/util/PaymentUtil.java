@@ -17,9 +17,6 @@ import java.util.UUID;
             return PAYMENT_PREFIX + UUID.randomUUID().toString().substring(0, 8);
         }
 
-        public static String generateIdempodencyKey(){
-            return  UUID.randomUUID().toString();
-        }
 
         public static String maskUpiId(String upiId) {
             if (upiId == null || !upiId.contains("@")) {
