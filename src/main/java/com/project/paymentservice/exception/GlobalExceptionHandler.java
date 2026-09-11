@@ -62,4 +62,14 @@ import java.util.Map;
 
             return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+
+        @ExceptionHandler(InvalidPaymentStatusException.class)
+        public ResponseEntity<Map<String,String>> handleInvalidPaymentStatusException(Exception ex){
+            Map<String, String> error=new HashMap<>();
+            error.put("error", "Given status is not valid");
+            error.put("message", ex.getMessage());
+
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(error);
+        }
     }

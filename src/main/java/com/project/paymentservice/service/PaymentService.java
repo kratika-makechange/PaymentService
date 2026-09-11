@@ -7,7 +7,9 @@ import com.project.paymentservice.dto.PaymentResponseCreatedDto;
 import com.project.paymentservice.dto.PaymentResponseDto;
 import com.project.paymentservice.entity.Payment;
 import com.project.paymentservice.exception.InvalidPaymentException;
+import com.project.paymentservice.exception.InvalidPaymentStatusException;
 import com.project.paymentservice.exception.PaymentNotFoundException;
+import com.project.paymentservice.mapper.PaymentMapper;
 import com.project.paymentservice.repository.PaymentRepository;
 import com.project.paymentservice.util.PaymentUtil;
 import org.slf4j.Logger;
@@ -23,72 +25,83 @@ import java.util.Optional;
 @Service
     public class PaymentService {
         private final PaymentRepository repository;
+        private final PaymentProcessor process;
+        private final PaymentMapper paymentMapper;
         private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
 
-    public PaymentService(PaymentRepository repository) {
+    public PaymentService(PaymentRepository repository, PaymentProcessor process, PaymentMapper paymentMapper) {
         this.repository = repository;
+        this.process = process;
+        this.paymentMapper = paymentMapper;
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    public PaymentResponseDto createPayment(String idempotencyKey, PaymentRequestDto request) throws InvalidPaymentException {
+        logger.info("Payment Started with Idempotency Key: {}", idempotencyKey);
 
-    @Transactional(rollbackFor = InvalidPaymentException.class)
-    public PaymentResponseCreatedDto createPayment(PaymentRequestDto request) throws InvalidPaymentException {
-            logger.info("Payment Started");
-
-
-            String paymentId = PaymentUtil.generatePaymentId();
-            Payment payment=new Payment();
-            payment.setPayerName(request.getPayerName());
-            payment.setPaymentId(paymentId);
-            payment.setUpiId(request.getUpiId());
-            payment.setAmount(request.getAmount());
-            payment.setCreatedAt(LocalDateTime.now());
-
-                PaymentUtil.validatePaymentRequest(request);
-                payment.setStatus(PaymentStatus.SUCCESS);
-                logger.info("Payment Successful for ID: {}", paymentId);
-                repository.save(payment);
-
-                return new PaymentResponseCreatedDto(
-                        paymentId, payment.getStatus(),
-                        "Payment completed successfully"
-                );
-
-
+        // 1. Check Idempotency FIRST
+        Optional<Payment> existingPayment = repository.findByIdempotencyKey(idempotencyKey);
+        if (existingPayment.isPresent()) {
+            logger.info("Idempotency Hit! Returning same payment details for key: {}", idempotencyKey);
+            return paymentMapper.toPostResponseDto(existingPayment.get(), "Payment previously processed");
         }
 
-        public PaymentResponseDto getPaymentById(String id)throws PaymentNotFoundException{
+        // 2. Validate SECOND
+        PaymentUtil.validatePaymentRequest(request);
 
-            Payment payment=repository.findByPaymentId(id).
-                orElseThrow(()-> new PaymentNotFoundException("Payment not found with id :"+ id));
+        // 3. Use Mapper for entity creation
+        Payment payment = paymentMapper.toEntity(request, idempotencyKey);
+        repository.save(payment);
+        logger.info("Payment saved with status PENDING for ID: {}", payment.getPaymentId());
 
-            return new PaymentResponseDto(
-                    payment.getPaymentId(),
-                    payment.getPayerName(),
-                    payment.getUpiId(),
-                    payment.getAmount(),
-                    payment.getStatus(),
-                    "Payment retrieved successfully"
-            );
+        // 4. Process
+        PaymentStatus finalStatus = process.processPayment(payment);
+        payment.setStatus(finalStatus);
 
-        }
+        repository.save(payment);
+        logger.info("Payment finished with status: {} for ID: {}", finalStatus, payment.getPaymentId());
 
-    public List<PaymentResponseDto> getPaymentByName(String payerName)throws PaymentNotFoundException{
+        String message = finalStatus == PaymentStatus.SUCCESS
+                ? "Payment completed successfully"
+                : "Payment processing failed";
 
+        // 5. Use Mapper for response
+        return paymentMapper.toPostResponseDto(payment, message);
+    }
+
+    public PaymentResponseDto getPaymentById(String id) throws PaymentNotFoundException {
+        Payment payment = repository.findByPaymentId(id)
+                .orElseThrow(() -> new PaymentNotFoundException("Payment not found with id: " + id));
+
+        // Use mapper to ensure consistent DTO structure and UPI masking
+        return paymentMapper.toDto(payment, "Payment retrieved successfully");
+    }
+
+    public List<PaymentResponseDto> getPaymentByName(String payerName) throws PaymentNotFoundException {
         List<Payment> payments = repository.findByPayerName(payerName);
         if (payments.isEmpty()) {
-            throw new PaymentNotFoundException("Payment not found for name :" + payerName);
+            throw new PaymentNotFoundException("Payment not found for name: " + payerName);
         }
 
-
+        // Stream through and map each entity using the mapper
         return payments.stream()
-                .map(payment -> new PaymentResponseDto(
-                payment.getPaymentId(),
-                payment.getPayerName(),
-                payment.getUpiId(),
-                payment.getAmount(),
-                payment.getStatus(),
-                "Payment retrieved successfully"
-        )).toList();
+                .map(payment -> paymentMapper.toDto(payment, "Payment retrieved successfully"))
+                .toList();
+    }
 
+    public PaymentResponseDto updatePaymentStatus(String paymentId, PaymentStatus status) throws InvalidPaymentStatusException, PaymentNotFoundException {
+        Payment payment = repository.findByPaymentId(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException("Payment not found with id: " + paymentId));
+
+        if (payment.getStatus().equals(PaymentStatus.PENDING)) {
+            payment.setStatus(PaymentStatus.SUCCESS);
+            repository.save(payment);
+
+            // Use mapper here as well
+            return paymentMapper.toDto(payment, "Payment updated successfully");
+        }
+
+        // Fixed exception string concatenation
+        throw new InvalidPaymentStatusException("Payment already completed for paymentId " + paymentId + " with status " + payment.getStatus());
     }
     }

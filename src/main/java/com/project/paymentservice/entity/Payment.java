@@ -4,6 +4,8 @@ import com.project.paymentservice.Enum.PaymentStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import org.hibernate.validator.constraints.UniqueElements;
+import org.springframework.data.annotation.LastModifiedDate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -28,6 +30,10 @@ public class Payment {
     @Enumerated(EnumType.STRING)
     PaymentStatus status;
     LocalDateTime createdAt;
+    LocalDateTime updatedAt;
+
+    @Column(name = "idempotency_key",nullable = false, unique = true)
+    String idempotencyKey;
 
 
     public String getPaymentId() {
@@ -82,4 +88,20 @@ public class Payment {
         return id;
     }
 
+    @LastModifiedDate
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public void setIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
+    }
 }

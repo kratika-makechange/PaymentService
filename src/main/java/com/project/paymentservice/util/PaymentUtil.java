@@ -17,6 +17,28 @@ import java.util.UUID;
             return PAYMENT_PREFIX + UUID.randomUUID().toString().substring(0, 8);
         }
 
+        public static String generateIdempodencyKey(){
+            return  UUID.randomUUID().toString();
+        }
+
+        public static String maskUpiId(String upiId) {
+            if (upiId == null || !upiId.contains("@")) {
+                return upiId;
+            }
+
+            String[] parts = upiId.split("@");
+            String username = parts[0];
+            String provider = parts[1];
+
+            // Handle extremely short usernames (1 or 2 characters) gracefully
+            if (username.length() <= 2) {
+                return username.charAt(0) + "****@" + provider;
+            }
+
+            // Standard masking: keep first 2 chars, add 4 asterisks, append provider
+            return username.substring(0, 2) + "****@" + provider;
+        }
+
         public static void validatePaymentRequest(PaymentRequestDto request) throws InvalidPaymentException {
             if (request == null) {
                 throw new InvalidPaymentException("Payment request cannot be null");

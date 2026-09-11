@@ -1,9 +1,11 @@
 package com.project.paymentservice.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.project.paymentservice.Enum.PaymentStatus;
 
 import java.math.BigDecimal;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class PaymentResponseDto {
         private String paymentId;
         private String payerName;
