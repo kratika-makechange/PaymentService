@@ -3,11 +3,10 @@ package com.project.paymentservice.service;
 
 import com.project.paymentservice.Enum.PaymentStatus;
 import com.project.paymentservice.dto.PaymentRequestDto;
-import com.project.paymentservice.dto.PaymentResponseCreatedDto;
 import com.project.paymentservice.dto.PaymentResponseDto;
 import com.project.paymentservice.entity.Payment;
-import com.project.paymentservice.exception.InvalidPaymentException;
-import com.project.paymentservice.exception.PaymentNotFoundException;
+import com.project.paymentservice.exception.InvalidPaymentStatusException;
+import com.project.paymentservice.mapper.PaymentMapper;
 import com.project.paymentservice.repository.PaymentRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,58 +14,66 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @ExtendWith(MockitoExtension.class)
 public class PaymentServiceTest {
-
     @Mock
     private PaymentRepository repository;
+    @Mock
+    private PaymentProcessor processor;
+    @Mock
+    private PaymentMapper paymentMapper;
 
     @InjectMocks
     private PaymentService paymentService;
 
     @Test
-    void createPayment_Success() throws InvalidPaymentException {
-        PaymentRequestDto request = new PaymentRequestDto();
-        request.setPayerName("Test User");
-        request.setUpiId("test@upi");
-        request.setAmount(new java.math.BigDecimal("1000.00"));
+    void createPayment_IdempotencyHit_ReturnsExisting() throws Exception {
+        String idempotencyKey = "key-123";
+        Payment existingPayment = new Payment();
+        PaymentResponseDto expectedResponse = new PaymentResponseDto(null, null, null, null, null, null);
 
-        PaymentResponseCreatedDto response = paymentService.createPayment(request);
+        when(repository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.of(existingPayment));
+        when(paymentMapper.toPostResponseDto(eq(existingPayment), anyString())).thenReturn(expectedResponse);
 
-        assertNotNull(response.getPaymentId());
-        assertEquals(PaymentStatus.SUCCESS, response.getStatus());
-        verify(repository, times(1)).save(any(Payment.class));
+        PaymentResponseDto result = paymentService.createPayment(idempotencyKey, new PaymentRequestDto());
+
+        assertEquals(expectedResponse, result);
+        verify(repository, never()).save(any());
     }
 
     @Test
-    void getPaymentById_Success() throws PaymentNotFoundException {
-        Payment mockPayment = new Payment();
-        mockPayment.setPaymentId("PAY-123");
-        mockPayment.setPayerName("Test User");
+    void updatePaymentStatus_ValidTransition_UpdatesAndReturns() throws Exception {
+        String paymentId = "PAY-123";
+        Payment payment = new Payment();
+        payment.setStatus(PaymentStatus.PENDING);
+        PaymentResponseDto expectedResponse = new PaymentResponseDto(null, null, null, null, null, null);
 
-        when(repository.findByPaymentId("PAY-123")).thenReturn(Optional.of(mockPayment));
+        when(repository.findByPaymentId(paymentId)).thenReturn(Optional.of(payment));
+        when(paymentMapper.toDto(eq(payment), anyString())).thenReturn(expectedResponse);
 
-        PaymentResponseDto response = paymentService.getPaymentById("PAY-123");
+        PaymentResponseDto result = paymentService.updatePaymentStatus(paymentId, PaymentStatus.SUCCESS);
 
-        assertEquals("PAY-123", response.getPaymentId());
-        assertEquals("Test User", response.getPayerName());
+        assertEquals(expectedResponse, result);
+        assertEquals(PaymentStatus.SUCCESS, payment.getStatus());
+        verify(repository).save(payment);
     }
 
     @Test
-    void getPaymentByName_ThrowsException_WhenListEmpty() {
-        when(repository.findByPayerName("Unknown")).thenReturn(Collections.emptyList());
+    void updatePaymentStatus_AlreadyCompleted_ThrowsException() {
+        String paymentId = "PAY-123";
+        Payment payment = new Payment();
+        payment.setStatus(PaymentStatus.SUCCESS);
 
-        assertThrows(PaymentNotFoundException.class, () -> {
-            paymentService.getPaymentByName("Unknown");
-        });
+        when(repository.findByPaymentId(paymentId)).thenReturn(Optional.of(payment));
+
+        assertThrows(InvalidPaymentStatusException.class,
+                () -> paymentService.updatePaymentStatus(paymentId, PaymentStatus.FAILED));
     }
 }

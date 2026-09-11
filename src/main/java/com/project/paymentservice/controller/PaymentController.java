@@ -62,9 +62,5 @@ import java.util.Optional;
             return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @GetMapping("/ping")
-    public String ping() {
-        return "Controller is working!";
-    }
     }
 
