@@ -17,6 +17,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.util.List;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -27,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(PaymentController.class)
 class PaymentControllerTest {
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -43,9 +46,10 @@ class PaymentControllerTest {
         request.setUpiId("john@okaxis");
         request.setAmount(new BigDecimal("100.00"));
 
-        when(paymentService.createPayment(any(), any())).thenReturn(new PaymentResponseDto(null, null, null, null, null, null));
+        // Assuming PaymentResponseDto has a no-args constructor
+        when(paymentService.createPayment(any(), any())).thenReturn(new PaymentResponseDto(null,null,null,null,null,null));
 
-        mockMvc.perform(post("/v1/payments")
+        mockMvc.perform(post("/api/v1/payments")
                         .header("Idempotency-Key", "test-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -54,9 +58,21 @@ class PaymentControllerTest {
 
     @Test
     void findByPaymentId_ReturnsOk() throws Exception {
-        when(paymentService.getPaymentById("PAY-123")).thenReturn(new PaymentResponseDto(null, null, null, null, null, null));
+        when(paymentService.getPaymentById("PAY-123")).thenReturn(new PaymentResponseDto(null,null,null,null,null,null));
 
-        mockMvc.perform(get("/v1/payments/getPayments/PAY-123"))
+        // Updated to match the new /{paymentId} mapping
+        mockMvc.perform(get("/api/v1/payments/PAY-123"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void findByPayerName_ReturnsOk() throws Exception {
+        // Mocking a list response since findByPayerName returns List<PaymentResponseDto>
+        when(paymentService.getPaymentByName("John")).thenReturn(List.of(new PaymentResponseDto(null,null,null,null,null,null)));
+
+        // Updated to use @RequestParam mapping
+        mockMvc.perform(get("/api/v1/payments")
+                        .param("payerName", "John"))
                 .andExpect(status().isOk());
     }
 
@@ -65,9 +81,9 @@ class PaymentControllerTest {
         PaymentStatusUpdateDto updateDto = new PaymentStatusUpdateDto();
         updateDto.setStatus(PaymentStatus.SUCCESS);
 
-        when(paymentService.updatePaymentStatus(eq("PAY-123"), any())).thenReturn(new PaymentResponseDto(null, null, null, null, null, null));
+        when(paymentService.updatePaymentStatus(eq("PAY-123"), any())).thenReturn(new PaymentResponseDto(null,null,null,null,null,null));
 
-        mockMvc.perform(patch("/v1/payments/PAY-123/status")
+        mockMvc.perform(patch("/api/v1/payments/PAY-123/status")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateDto)))
                 .andExpect(status().isOk());

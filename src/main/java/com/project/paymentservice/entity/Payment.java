@@ -30,11 +30,26 @@ public class Payment {
     @Enumerated(EnumType.STRING)
     PaymentStatus status;
     LocalDateTime createdAt;
+
     LocalDateTime updatedAt;
 
     @Column(name = "idempotency_key",nullable = false, unique = true)
     String idempotencyKey;
 
+
+    @PrePersist
+    public void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
     public String getPaymentId() {
         return paymentId;

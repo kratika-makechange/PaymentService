@@ -34,7 +34,7 @@ import java.util.Map;
             error.put("error", "payment not found");
             error.put("message", ex.getMessage());
 
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(error);
         }
 

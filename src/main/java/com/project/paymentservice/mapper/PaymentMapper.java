@@ -24,7 +24,7 @@ public interface PaymentMapper {
 
     // Use Java expressions to generate dynamic fields
     @Mapping(target = "paymentId", expression = "java(PaymentUtil.generatePaymentId())")
-    @Mapping(target = "createdAt", expression = "java(LocalDateTime.now())")
+
 
     // Set constants
     @Mapping(target = "status", constant = "PENDING")

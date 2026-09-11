@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
     public class PaymentUtil {
-
         private static final String PAYMENT_PREFIX = "PAY-";
         // Basic regex pattern to validate UPI ID format (e.g., name@bank)
         private static final String UPI_PATTERN = "^[a-zA-Z0-9.\\-_]+@[a-zA-Z]+$";
@@ -16,7 +15,6 @@ import java.util.UUID;
         public static String generatePaymentId() {
             return PAYMENT_PREFIX + UUID.randomUUID().toString().substring(0, 8);
         }
-
 
         public static String maskUpiId(String upiId) {
             if (upiId == null || !upiId.contains("@")) {
@@ -49,7 +47,8 @@ import java.util.UUID;
                 throw new InvalidPaymentException("Invalid UPI ID");
             }
 
-            if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            // NEW: Added defensive null check for the amount before invoking compareTo
+            if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
                 throw new InvalidPaymentException("Payment amount must be greater than zero");
             }
         }

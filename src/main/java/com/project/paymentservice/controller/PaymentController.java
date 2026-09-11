@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-    @RequestMapping("/v1/payments")
+    @RequestMapping("api/v1/payments")
     public class PaymentController {
 
         private final PaymentService paymentService;
@@ -43,20 +43,20 @@ import java.util.Optional;
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-        @GetMapping("/getPayments/{paymentId}")
+        @GetMapping("/{paymentId}")
         ResponseEntity<PaymentResponseDto> findByPaymentId(@PathVariable String paymentId) throws PaymentNotFoundException {
             PaymentResponseDto response=paymentService.getPaymentById(paymentId);
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
-    @GetMapping("/getPayments/name/{payerName}")
-   public ResponseEntity<List<PaymentResponseDto>> findByPayerName(@PathVariable String payerName) throws PaymentNotFoundException {
+    @GetMapping
+   public ResponseEntity<List<PaymentResponseDto>> findByPayerName(@RequestParam String payerName) throws PaymentNotFoundException {
         List<PaymentResponseDto> response=paymentService.getPaymentByName(payerName);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PatchMapping("{paymentId}/status")
-    public ResponseEntity<PaymentResponseDto> updateStatus(@PathVariable String paymentId, PaymentStatusUpdateDto status) throws InvalidPaymentStatusException, InvalidPaymentStatusException, PaymentNotFoundException {
+    public ResponseEntity<PaymentResponseDto> updateStatus(@PathVariable String paymentId, @Valid @RequestBody PaymentStatusUpdateDto status) throws InvalidPaymentStatusException,PaymentNotFoundException {
 
             PaymentResponseDto response=paymentService.updatePaymentStatus(paymentId, status.getStatus());
             return new ResponseEntity<>(response, HttpStatus.OK);
